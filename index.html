@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Snake Game - Aditya Kr Mishra</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+        }
+
+        #gameCanvas {
+            border: 3px solid #3a3a3a;
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0, 150, 255, 0.3);
+        }
+
+        .welcome-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 2;
+        }
+
+        .play-button {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: linear-gradient(45deg, #00ff88, #00b4d8);
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            animation: pulse 2s infinite;
+        }
+
+        .game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 2;
+        }
+
+        .retry-button {
+            padding: 12px 30px;
+            font-size: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            animation: pulse 1.5s infinite;
+            margin: 15px 0;
+        }
+
+        .github-icon {
+            width: 40px;
+            height: 40px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 3;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .background-effects {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 50%, rgba(0, 180, 216, 0.1) 50%);
+            background-size: 10px 10px;
+            animation: moveBackground 20s linear infinite;
+        }
+
+        @keyframes moveBackground {
+            0% { background-position: 0 0; }
+            100% { background-position: 100% 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="background-effects"></div>
+        <div class="score-display">Score: <span id="scoreValue">0</span></div>
+        <div class="welcome-screen">
+            <h1>3D Snake Game</h1>
+            <button class="play-button" onclick="startGame()">Play Now</button>
+        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="game-over">
+            <h2>Game Over!</h2>
+            <p>Score: <span id="finalScore">0</span></p>
+            <button class="retry-button" onclick="startGame()">Retry</button>
+            <p>Made with ❤️ by Aditya Kr Mishra</p>
+            <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" 
+                 alt="GitHub" 
+                 class="github-icon"
+                 onclick="window.open('https://github.com/adityakrmishra', '_blank')">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const welcomeScreen = document.querySelector('.welcome-screen');
+        const gameOverScreen = document.querySelector('.game-over');
+
+        let snake = [];
+        let food = {};
+        let direction = 'right';
+        let gameLoop;
+        let score = 0;
+
+        function startGame() {
+            welcomeScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            snake = [];
+            // Initialize snake with 4 body segments
+            let startX = 400;
+            for(let i = 0; i < 4; i++) {
+                snake.push({x: startX - (i * 10), y: 300});
+            }
+            score = 0;
+            direction = 'right';
+            document.getElementById('scoreValue').textContent = score;
+            spawnFood();
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 100);
+        }
+
+        function spawnFood() {
+            food = {
+                x: Math.floor(Math.random() * 78) * 10 + 10,
+                y: Math.floor(Math.random() * 58) * 10 + 10
+            };
+        }
+
+        function update() {
+            const head = {x: snake[0].x, y: snake[0].y};
+            
+            switch(direction) {
+                case 'up': head.y -= 10; break;
+                case 'down': head.y += 10; break;
+                case 'left': head.x -= 10; break;
+                case 'right': head.x += 10; break;
+            }
+
+            if (head.x < 0 || head.x >= 800 || head.y < 0 || head.y >= 600 || 
+                snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+
+            snake.unshift(head);
+
+            if (Math.abs(head.x - food.x) < 10 && Math.abs(head.y - food.y) < 10) {
+                score += 10;
+                document.getElementById('scoreValue').textContent = score;
+                spawnFood();
+            } else {
+                snake.pop();
+            }
+
+            draw();
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, 800, 600);
+
+            // Draw snake with 3D effect
+            snake.forEach((segment, index) => {
+                const gradient = ctx.createLinearGradient(
+                    segment.x, segment.y,
+                    segment.x + 10, segment.y + 10
+                );
+                gradient.addColorStop(0, `hsl(${(index * 10) % 360}, 100%, 50%)`);
+                gradient.addColorStop(1, `hsl(${(index * 10 + 30) % 360}, 100%, 70%)`);
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.roundRect(segment.x, segment.y, 10, 10, 3);
+                ctx.fill();
+                ctx.shadowColor = gradient;
+                ctx.shadowBlur = 15;
+            });
+
+            // Draw food with animation
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(food.x + 5, food.y + 5, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 20;
+        }
+
+        function gameOver() {
+            clearInterval(gameLoop);
+            document.getElementById('finalScore').textContent = score;
+            gameOverScreen.style.display = 'block';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp': if (direction !== 'down') direction = 'up'; break;
+                case 'ArrowDown': if (direction !== 'up') direction = 'down'; break;
+                case 'ArrowLeft': if (direction !== 'right') direction = 'left'; break;
+                case 'ArrowRight': if (direction !== 'left') direction = 'right'; break;
+            }
+        });
+    </script>
+</body>
+</html>
